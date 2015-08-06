@@ -186,7 +186,7 @@ bedGroups <- c()
 bedGroups[1:12] <- "GC Content"
 bedGroups[13:20] <- "Imperfect Repeats"
 bedGroups[21:26] <- "Unimask"
-bedGroups[26:29] <- "Miscellaneous"
+bedGroups[27:29] <- "Miscellaneous"
 bedGroups[30:41] <- "Simple Repeats"
 # Create a vector for each group once in the order they appear along the x axis
 totalGroups <- unique(bedGroups)
