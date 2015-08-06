@@ -17,7 +17,7 @@
 #          the counts for TP, FP, FN, and NA not overlapping; the total counts for not overlapping; rates of not overlapping for FP, FN, and NA 
 #          ratios of overlap to not overlap for TP, FP, FN, and NA; total ratio of overlap to not overlap; odds ratios by FP, FN, and NA
 # 
-# Run the commentted 'install.packages' lines the first time this program is run only
+# Run the commented 'install.packages' lines the first time this program is run only
 
 #install.packages("data.table")   # only run this the first time to install
 library(data.table)
