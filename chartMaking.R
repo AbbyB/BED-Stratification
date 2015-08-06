@@ -14,7 +14,7 @@
 #          moving left to right: leftmost column ("VCF") has the VCF file name without the extension, 
 #          then columns with variant information, then chart columns
 # 
-# Run the commentted 'install.packages' lines the first time this program is run only
+# Run the commented 'install.packages' lines the first time this program is run only
 # When running this program with different BED or VCF files, take note of comments with '**'
 
 # install.packages("data.table")  # only run this the first time to install
