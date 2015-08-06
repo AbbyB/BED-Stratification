@@ -9,7 +9,7 @@
 #          moving left to right: leftmost column ("VCF") has the file name without the extension next to FN, FP, or NA, 
 #          then estimate , lower 2.5% bound, upper 97.5% bound
 # 
-# Run the commentted 'install.packages' lines the first time this program is run only
+# Run the commented 'install.packages' lines the first time this program is run only
 
 # install.packages("Hmisc") #only run this the first time to install
 # install.packages("data.table")
