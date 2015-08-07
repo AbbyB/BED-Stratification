@@ -23,6 +23,10 @@ library(data.table)
 # Input
 # Finds all the files in the current directory with the file extension '.tabular'
 files <- list.files(pattern = "\\.tabular$")
+# **If you want to remove files from this list use:
+#    files <- files[grep("(word to search for to remove file name)", files, invert = TRUE)]
+#   Or if you want to select certain files use:
+#    files <- files[grep("(keyword of file names)", files)]
 
 # Reads all files found in the directory
 VCFs <- list()
@@ -32,8 +36,8 @@ for (y in 1:length(files)) {
 
 # Labels the VCF files using the file name without the '.tabular' extension
 VCFName <- gsub('.tabular','',files)
-# **If you want different labels, change to:
-#    VCFName <- c((label 1), (label 2), (etc. for the total number of files))
+# If you want different labels, change to:
+#  chartName <- c("(label 1)", "(label 2)", "(etc. for the total number of files)")
 
 # Only keep columns that are important
 # Variant information
