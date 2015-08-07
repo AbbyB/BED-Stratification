@@ -25,8 +25,10 @@ library(data.table)
 # Input
 # Finds all the files in the current directory with the file extension '.csv'
 files <- list.files(pattern = "\\.csv$")
-# If you want to remove files from this list use:
-#  files <- files[grep("(word to search for to remove file name)", files, invert = TRUE)]
+# **If you want to remove files from this list use:
+#    files <- files[grep("(word to search for to remove file name)", files, invert = TRUE)]
+#   Or if you want to select certain files use:
+#    files <- files[grep("(keyword of file names)", files)]
 
 # Reads all files found in the directory
 charts <- list()
@@ -36,6 +38,9 @@ for (z in 1:length(files)) {
 
 # Labels the chart files using the file name without the '.csv' extension
 chartName <- gsub('.csv','',files)
+# **If you want different labels, change to:
+#    chartName <- c("(label 1)", "(label 2)", "(etc. for the total number of files)")
+
 # List of the VCF names
 VCFNames <- unique(charts[[1]][,VCF])
 # Set data table to sort by VCF
@@ -45,7 +50,6 @@ lapply(1:length(charts),function(z){setkey(charts[[z]],VCF)})
 # Save the column names to a variable
 SR <- names(charts[[1]])[grepl("SR", names(charts[[1]]))]
 IR <- c("lt7.lt51bp","lt7.51to200bp","lt7.gt200bp","gt6.lt51bp","gt6.51to200bp","gt6.gt200bp")
-IRSR <- c(SR,IR)
 # Loop through the charts and row sum the relevant columns
 lapply(1:length(charts),function(z){
   # Imperfect Repeats
@@ -53,7 +57,7 @@ lapply(1:length(charts),function(z){
   # Simple Repeats
   charts[[z]][,SR := rowSums(charts[[z]][,SR,with = FALSE])]
   # Imperfect Repeats and Simple Repeats
-  charts[[z]][,IRSR := rowSums(charts[[z]][,IRSR,with = FALSE])]
+  charts[[z]][,IRSR := IR + SR]
 })
 
 # Initialize the variables
