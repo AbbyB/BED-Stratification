@@ -11,7 +11,7 @@
 #          moving left to right: leftmost column ("VCF") has the chart file name without the extension next to the VCF name, 
 #          then BED file, estimate rate, lower bound, upper bound
 # 
-# Run the commented 'install.packages' lines the first time this program is run only
+# Run the comment-ed 'install.packages' lines the first time this program is run only
 # When running this program with different BED or VCF files, take note of comments with '**'
 
 # install.packages("Hmisc")  # only run this the first time to install
@@ -24,8 +24,10 @@ library(ggplot2)
 # Input
 # Finds all the files in the current directory with the file extension '.csv'
 files <- list.files(pattern = "\\.csv$")
-# If you want to remove files from this list use:
-#  files <- files[grep("(word to search for to remove file name)", files,invert = TRUE)]
+# **If you want to remove files from this list use:
+#    files <- files[grep("(word to search for to remove file name)", files, invert = TRUE)]
+#   Or if you want to select certain files use:
+#    files <- files[grep("(keyword of file names)", files)]
 
 # Reads all files found in the directory
 charts <- list()
@@ -36,7 +38,7 @@ for (z in 1:length(files)) {
 # Labels the chart files using the file name without the '.csv' extension
 chartName <- gsub('.csv','',files)
 # **If you want different labels, change to:
-#    chartName <- c((label 1), (label 2), (etc. for the total number of files))
+#    chartName <- c("(label 1)", "(label 2)", "(etc. for the total number of files)")
 
 # List of the VCF file names
 VCFNamesSorted <- sort(unique(charts[[1]][,VCF]))[1:4]
@@ -53,17 +55,28 @@ while(!all(unique(charts[[1]][[x]]) %in% c(0,1))) {
   if(x==chartEnd){stop("Please set the value for firstBED")}
   x<-x+1}
 firstBED <- x
-# Set firstBED to first BED file column if the error message "Please set the value for firstBED" appears:
-#  firstBED <- 
+# **Set firstBED to first BED file column if the error message "Please set the value for firstBED" appears:
+#    firstBED <- 
+
+# Select all the BED files except gc30to55
+BEDs <- names(charts[[1]])[firstBED:length(names(charts[[1]]))]
+BEDs <- BEDs[BEDs != "gc30to55"]
+# Loop through the charts and row sum the relevant columns
+lapply(1:length(charts),function(z){
+  charts[[z]][,totalBEDs := rowSums(charts[[z]][,BEDs,with = FALSE])]
+})
 
 # Compute
 # Create the first row of the binomial confidence interval
 #  creates a new row that is:
 #  Chart name, BED name, estimate point, lower bound, upper bound
 confInt <- lapply(1:length(charts),function(z){
-  rbindlist(list(as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Negatives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[1],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[1],x,with=FALSE])+sum(charts[[z]][VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
-                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Positives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[2],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[2],x,with=FALSE])+sum(charts[[z]][VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
-                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"Not Assessed"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[3],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[3],x,with=FALSE])+sum(charts[[z]][VCF==VCFNamesSorted[4],x,with=FALSE])))}))))))
+  rbindlist(list(as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Negatives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[1],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[1] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
+                 as.data.table(cbind(paste(chartName[z],"False Negatives"),"No BED File",binconf(nrow(charts[[z]][VCF==VCFNamesSorted[1] & totalBEDs == 0,]),nrow(charts[[z]][(VCF==VCFNamesSorted[1] | VCF==VCFNamesSorted[4]) & totalBEDs == 0,])))),
+                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Positives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[2],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[2] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
+                 as.data.table(cbind(paste(chartName[z],"False Positives"),"No BED File",binconf(nrow(charts[[z]][VCF==VCFNamesSorted[2] & totalBEDs == 0,]),nrow(charts[[z]][(VCF==VCFNamesSorted[2] | VCF==VCFNamesSorted[4]) & totalBEDs == 0,])))),
+                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"Not Assessed"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[3],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[3] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
+                 as.data.table(cbind(paste(chartName[z],"Not Assessed"),"No BED File",binconf(nrow(charts[[z]][VCF==VCFNamesSorted[3] & totalBEDs == 0,]),nrow(charts[[z]][(VCF==VCFNamesSorted[3] | VCF==VCFNamesSorted[4]) & totalBEDs == 0,]))))))
 })
 confInt <- rbindlist(confInt)
 
@@ -148,7 +161,7 @@ bedFiles <- confInt[VCF == VCFNames[1],BED.File]
 
 # Create a vector of the rate in a "typical" part of the genome
 #  typical being the gc content of 30 to 55
-lines <- confInt[BED.File == "gc30to55",PointEst]
+lines <- confInt[BED.File == "No BED File",PointEst]
 
 #GRAPHING WAY 1 -------------
 
@@ -166,7 +179,7 @@ graphs <- lapply(1:length(VCFNames),function(y){
     # Add error bars
     geom_errorbar(aes(ymax = Upper, ymin = Lower), position=position_dodge(width=0.9), width=0.25) + 
     # Scale the y axis
-    ylim(0, 1) + 
+    # ylim(0, 1) + 
     # Add a title
     ggtitle(paste(VCFNames[y],"Rate")) + 
     # Add horizontal line for typical genome regions
@@ -204,7 +217,7 @@ graphs <- lapply(1:length(VCFNames),function(y){
     # Add error bars
     geom_errorbar(aes(ymax = Upper, ymin = Lower), position=position_dodge(width=0.9), width=0.25) + 
     # Scale the y axis
-    ylim(0, 1) + 
+    # ylim(0, 1) + 
     # Add a title
     ggtitle(paste(VCFNames[y],"Rate")) + 
     # Add horizontal line for typical genome regions
@@ -224,4 +237,4 @@ graphs[[5]]
 graphs[[6]]
 
 # Plot all graphs on one page (click zoom to see)
-multiplot(plotlist = graphs, cols=floor(sqrt(length(graphs))))
+multiplot(plotlist = graphs, cols=round(sqrt(length(graphs))))
