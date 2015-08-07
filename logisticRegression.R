@@ -1,15 +1,16 @@
 
-# Program runs binomical conf interval tests and logistical regression for FN, FP, and NA rates for stratification bed files and graphs them
+# Program runs logistical regression for FN, FP, and NA rates on the BED files and graphs the results
 # Input: All of the filename extension '.csv' files in the current directory, 
 #         which should be csv charts which include a column 'VCF' whose values when sorted alphabetically
 #         the first four must correspond to the following categories:
 #          False Negatives, False Positives, Not Assessed, and True Positives
 # 
 # Output: 1 CSV file that includes all the VCFs, 
-#          moving left to right: leftmost column ("VCF") has the file name without the extension next to FN, FP, or NA, 
-#          then estimate , lower 2.5% bound, upper 97.5% bound
+#          moving left to right: leftmost column ("VCF") has the file name without the extension next to FN, FP, or NA;
+#          then BED name; estimate; lower 2.5% bound; upper 97.5% bound
 # 
 # Run the commented 'install.packages' lines the first time this program is run only
+# Take note of comments with '**', especially when running this program with different BED or VCF files, 
 
 # install.packages("Hmisc") #only run this the first time to install
 # install.packages("data.table")
@@ -21,8 +22,10 @@ library(ggplot2)
 # Input
 # Finds all the files in the current directory with the file extension '.csv'
 files <- list.files(pattern = "\\.csv$")
-# If you want to remove files from this list use:
-#  files <- files[grep("(word to search for to remove file name)", files,invert = TRUE)]
+# **If you want to remove files from this list use:
+#    files <- files[grep("(word to search for to remove file name)", files, invert = TRUE)]
+#   Or if you want to select certain files use:
+#    files <- files[grep("(keyword of file names)", files)]
 
 # Reads all files found in the directory
 charts <- list()
@@ -36,7 +39,9 @@ chartName <- gsub('.csv','',files)
 #    chartName <- c((label 1), (label 2), (etc. for the total number of files))
 
 # Number of regression models ran per chart
-numReg <- 5
+numReg <- 3
+# **Change this number if adding regression models
+#    numReg <- 
 
 # List of the VCF file names
 VCFNamesSorted <- sort(unique(charts[[1]][,VCF]))[1:4]
@@ -58,43 +63,53 @@ for (z in 1:length(charts)) {
   chartsFNTP[[z]] <- charts[[z]][FN==1 | TP==1,]
   chartsNATP[[z]] <- charts[[z]][NotA==1 | TP==1,]
 
-  # Initialize y to be a counter for the results  
+  # Initialize y to be a counter for the results, dependent upon the number of regression models
   y <- numReg*(z-1)+1
   
-  #test  1
-  logReg[[y]] <- glm(FP ~ gc15 + gc15to20 + gc20to25 + gc25to30 + gc30to55 + gc55to60 + gc60to65 + gc65to70 + gc70to75 + gc75to80 + gc80to85 + gc85 , data=chartsFPTP[[z]], family = binomial(logit))
-  summary(logitReg[[y]])
-  logRegResults[[y]] <- as.data.table(cbind(File = paste(chartName, "False Positives"),exp(cbind(Estimate = logReg[[y]]$coef, confint(logReg[[y]]))), keep.rownames=TRUE))
-  setnames(logRegResults[[y]],c("BED","Estimate","Lower2.5","Upper97.5"))
-  y <- y+1
-  
-  #test 2
-  logReg[[y]] <- glm(FP ~ gc15 + gc15to20 + gc20to25 + gc25to30 + gc65to70 + gc70to75 + gc75to80 + gc80to85 + gc85 , data=chartsFPTP[[z]], family = binomial(logit))
-  summary(logReg[[y]])
-  logRegResults[[y]] <- as.data.table(cbind(File = paste(chartName, "False Positives"),exp(cbind(Estimate = logReg[[y]]$coef, confint(logReg[[y]]))), keep.rownames=TRUE))
-  setnames(logRegResults[[y]],c("BED","Estimate","Lower2.5","Upper97.5"))
-  y <- y+1
-  
   # Logistical regression on FPs
+  # Skips gc30to55 because that is a typial region of the genome
+  # Skips lt7.gt200bp, SRHomopolymer.gt10, SRDiTR.gt200, SRTriTR.gt200, SRQuadTR.gt200 because there are not enough counts
   logReg[[y]] <- glm(FP ~ gc15 + gc15to20 + gc20to25 + gc25to30 + gc55to60 + gc60to65 + gc65to70 + gc70to75 + gc75to80 + gc80to85 + gc85 + lt7.lt51bp + lt7.51to200bp + gt6.lt51bp + gt6.51to200bp + gt6.gt200bp + hg19SelfChainSplit	+ refseqUnionCds + hs37.d5.mask75_50 + hs37.d5.mask35_50 + structural2 + compositional1 + cpg.islands + SRHomopolymer.3to5 + SRHomopolymer.6to10 + SRDiTR.11to50 + SRDiTR.51to200 + SRTriTR.11to50 + SRTriTR.51to200 + SRQuadTR.11to50 + SRQuadTR.51to200, data=chartsFPTP[[z]], family = binomial(logit))
+  # Gives a summary of the model
   summary(logReg[[y]])
-  #this generates the ratios and confidence intervals
+  # Generates the ratios and confidence intervals - takes a long time
   logRegResults[[y]] <- as.data.table(cbind(File = paste(chartName, "False Positives"),exp(cbind(Estimate = logReg[[y]]$coef, confint(logReg[[y]]))), keep.rownames=TRUE))
   setnames(logRegResults[[y]],c("BED","Estimate","Lower2.5","Upper97.5"))
   y <- y+1
   
   # Logistical regression on FNs
+  # Skips gc30to55 because that is a typial region of the genome
+  # Skips lt7.gt200bp, SRHomopolymer.gt10, SRDiTR.gt200, SRTriTR.gt200, SRQuadTR.gt200 because there are not enough counts
   logReg[[y]] <- glm(FN ~ gc15 + gc15to20 + gc20to25 + gc25to30 + gc55to60 + gc60to65 + gc65to70 + gc70to75 + gc75to80 + gc80to85 + gc85 + lt7.lt51bp + lt7.51to200bp + gt6.lt51bp + gt6.51to200bp + gt6.gt200bp + hg19SelfChainSplit	+ refseqUnionCds + hs37.d5.mask75_50 + hs37.d5.mask35_50 + structural2 + compositional1 + cpg.islands + SRHomopolymer.3to5 + SRHomopolymer.6to10 + SRDiTR.11to50 + SRDiTR.51to200 + SRTriTR.11to50 + SRTriTR.51to200 + SRQuadTR.11to50 + SRQuadTR.51to200, data=chartsFNTP[[z]], family = binomial(logit))
+  # Gives a summary of the model
   summary(logReg[[y]])
+  # Generates the ratios and confidence intervals - takes a long time
   logRegResults[[y]] <- as.data.table(cbind(File = paste(chartName, "False Negatives"),exp(cbind(Estimate = logReg[[y]]$coef, confint(logReg[[y]]))), keep.rownames=TRUE))
   setnames(logRegResults[[y]],c("BED","Estimate","Lower2.5","Upper97.5"))
   y <- y+1
   
   # Logistical regression on NAs
+  # Skips gc30to55 because that is a typial region of the genome
+  # Skips lt7.gt200bp, SRHomopolymer.gt10, SRDiTR.gt200, SRTriTR.gt200, SRQuadTR.gt200 because there are not enough counts
   logReg[[y]] <- glm(NotA ~ gc15 + gc15to20 + gc20to25 + gc25to30 + gc55to60 + gc60to65 + gc65to70 + gc70to75 + gc75to80 + gc80to85 + gc85 + lt7.lt51bp + lt7.51to200bp + gt6.lt51bp + gt6.51to200bp + gt6.gt200bp + hg19SelfChainSplit	+ refseqUnionCds + hs37.d5.mask75_50 + hs37.d5.mask35_50 + structural2 + compositional1 + cpg.islands + SRHomopolymer.3to5 + SRHomopolymer.6to10 + SRDiTR.11to50 + SRDiTR.51to200 + SRTriTR.11to50 + SRTriTR.51to200 + SRQuadTR.11to50 + SRQuadTR.51to200, data=chartsNATP[[z]], family = binomial(logit))
+  # Gives a summary of the model
   summary(logReg[[y]])
+  # Generates the ratios and confidence intervals - takes a long time
   logRegResults[[y]] <- as.data.table(cbind(File = paste(chartName, "Not Assessed"),exp(cbind(Estimate = logReg[[y]]$coef, confint(logReg[[y]]))), keep.rownames=TRUE))
   setnames(logRegResults[[y]],c("BED","Estimate","Lower2.5","Upper97.5"))
+
+  # **If adding a regression model:
+  #    Take note of if each category has enough counts, run the lines below first:
+  #     logReg[[y]] <- glm((y variable) ~ (x variable 1 + x variable 2 + etc. for the total number of variables), data=(name of the chart)[[z]], family = binomial(logit))
+  #	summary(logReg[[y]])
+  #    If there is an error message that the model cannot converge or certain files have a very large error,
+  #	consider removing some files from the model
+  #    Also, the program cannot handle extremely large files
+  #    If the summary looks good, then run the following:
+  #	logRegResults[[y]] <- as.data.table(cbind(File = paste(chartName, "(Name of the Model)",exp(cbind(Estimate = logReg[[y]]$coef, confint(logReg[[y]]))), keep.rownames=TRUE))
+  #	setnames(logRegResults[[y]],c("BED","Estimate","Lower2.5","Upper97.5"))
+
+
 }
 
 # Save the chart of logistic regression
@@ -163,7 +178,7 @@ bedFiles = logRegResults[[1]][,BED]
 
 # Each bar is colored differently, no legend
 # Save each VCF graph to a variable
-graphs <- lapply(1:length(VCFNames),function(y){
+graphs <- lapply(1:length(logRegResults),function(y){
   # Creates simple bar graph for 1 VCF, assigns the data to x and y
   ggplot(data=logRegResults[[y]], aes(x=factor(bedFiles, levels=bedFiles), y=Estimate, fill=factor(bedFiles, levels=bedFiles))) + 
     # Create a continous y axis
@@ -172,10 +187,12 @@ graphs <- lapply(1:length(VCFNames),function(y){
     guides(fill=FALSE) + 
     # Make the x axis horizontal
     theme(axis.text.x  = element_text(angle=90, vjust=0.5, hjust=1)) + 
+    # Scale the y axis
+    # ylim(0, 20) + 
     # Add error bars
     geom_errorbar(aes(ymax = Upper97.5, ymin = Lower2.5), position=position_dodge(width=0.9), width=0.25) + 
     # Add a title
-    ggtitle(paste(unique(logRegResults[[y]][,VCF]),"Odds")) + 
+    ggtitle(paste(unique(logRegResults[[y]][,File]),"Odds")) + 
     # Label the axes
     labs(x = "BED File", y = "Odds")
 })
@@ -198,7 +215,7 @@ bedGroups[25:32] <- "Simple Repeats"
 totalGroups <- unique(bedGroups)
 
 # Save each VCF graph to a variable
-graphs <- lapply(1:length(VCFNames),function(y){
+graphs <- lapply(1:length(logRegResults),function(y){
   # Creates simple bar graph for 1 VCF, assigns the data to x and y
   ggplot(data=logRegResults[[y]], aes(x=factor(bedFiles, levels=bedFiles), y=Estimate, fill=bedGroups)) + 
     # Create a continous y axis
@@ -207,10 +224,12 @@ graphs <- lapply(1:length(VCFNames),function(y){
     scale_fill_discrete(name="BED File Groupings", breaks=totalGroups) + 
     # Make the x axis horizontal
     theme(axis.text.x  = element_text(angle=90, vjust=0.5, hjust=1)) + 
+    # Scale the y axis
+    # ylim(0, 20) + 
     # Add error bars
     geom_errorbar(aes(ymax = Upper97.5, ymin = Lower2.5), position=position_dodge(width=0.9), width=0.25) + 
     # Add a title
-    ggtitle(paste(unique(logRegResults[[y]][,VCF]),"Odds")) + 
+    ggtitle(paste(unique(logRegResults[[y]][,File]),"Odds")) + 
     # Label the axes
     labs(x = "BED File", y = "Odds")
 })
@@ -223,4 +242,4 @@ graphs[[2]]
 graphs[[3]]
 
 # Plot all graphs on one page (click zoom to see)
-multiplot(plotlist = graphs, cols=floor(sqrt(length(graphs))))
+multiplot(plotlist = graphs, cols=round(sqrt(length(graphs))))
