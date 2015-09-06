@@ -37,7 +37,7 @@ for (y in 1:length(files)) {
 # Labels the VCF files using the file name without the '.tabular' extension
 VCFName <- gsub('.tabular','',files)
 # If you want different labels, change to:
-#  chartName <- c("(label 1)", "(label 2)", "(etc. for the total number of files)")
+#  VCFName <- c("(label 1)", "(label 2)", "(etc. for the total number of files)")
 
 # Only keep columns that are important
 # Variant information
