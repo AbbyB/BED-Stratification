@@ -63,17 +63,6 @@ annotations <- c('gc_content_15','gc_content_15to20','gc_content_20to25','gc_con
 # Combine the names of all the columns to keep
 keepColumns <- c(variantInfo,annotations)
 
-# Create columns for the chart
-addColumns <- c('gc15','gc15to20','gc20to25','gc25to30','gc30to55','gc55to60','gc60to65','gc65to70','gc70to75','gc75to80','gc80to85','gc85',
-                'lt7.lt51bp','lt7.lt101bp','lt7.51to200bp','lt7.gt200bp','gt6.lt51bp','gt6.lt101bp','gt6.51to200bp','gt6.gt200bp',
-                'um75.hs37.d5','um35.hs37.d5','hs37.d5.mask75_50','hs37.d5.mask35_50','structural','compositional',
-                'hg19SelfChainSplit','refseqUnionCds','cpg.islands',
-                'SRHomopolymer.3to5','SRHomopolymer.6to10','SRHomopolymer.gt10','SRDiTR.11to50','SRDiTR.51to200','SRDiTR.gt200',
-                'SRTriTR.11to50','SRTriTR.51to200','SRTriTR.gt200','SRQuadTR.11to50','SRQuadTR.51to200','SRQuadTR.gt200')
-# **To add another BED file
-#    2. Add the name of the column of the chart to the previous vector
-#    Note: don't start names with a number, don't use dashes (-), don't use the same name as the annotation
-
 # Compute
 # Loop through all the files
 for (y in 1:length(VCFs)) {
@@ -137,8 +126,8 @@ for (y in 1:length(VCFs)) {
   VCFs[[y]][,gt6.gt200bp := as.numeric(VCFs[[y]][,gt6_gt200bp] != "")]
   
   # **To add another BED file
-  #    3. Add this line
-  #        VCFs[[y]][,(name of the column in the chart (step 2)) := as.numeric(VCFs[[y]][,(name of the annotation in the VCF file (step 1))] != "")] - 
+  #    2. Add this line
+  #        VCFs[[y]][,(name of the column in the chart) := as.numeric(VCFs[[y]][,(name of the annotation in the VCF file (step 1))] != "")] - 
   
   # Removes the annotation columns
   VCFs[[y]][, ((length(variantInfo)+2):(length(keepColumns)+1)) := NULL, with = FALSE]
