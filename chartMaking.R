@@ -133,7 +133,7 @@ for (y in 1:length(VCFs)) {
   VCFs[[y]][,gt6.51to200bp := as.numeric(VCFs[[y]][,gt6_51to200bp] != "")]
   VCFs[[y]][,gt6.gt200bp := as.numeric(VCFs[[y]][,gt6_gt200bp] != "")]
   
-  # Create normal region part of the chart
+  # Create normal region part of the chart - variant is only a part of gc30to55 group
   VCFs[[y]][,normRegion := as.numeric(VCFs[[y]][,gc30to55] == 1 & rowSums(VCFs[[y]][,chartColumns, with = FALSE]) == 1)]
   
   # **To add another BED file
