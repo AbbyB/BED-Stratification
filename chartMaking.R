@@ -60,6 +60,14 @@ annotations <- c('gc_content_15','gc_content_15to20','gc_content_20to25','gc_con
 #    1. Add the name of the annotation to the previous vector
 #    Note: don't start names with a number or use dashes (-)
 
+# All the columns to go in the final chart except normRegion
+chartColumns <- c('gc15','gc15to20','gc20to25','gc25to30','gc30to55','gc55to60','gc60to65','gc65to70','gc70to75','gc75to80','gc80to85','gc85',
+                  'lt7.lt51bp','lt7.lt101bp','lt7.51to200bp','lt7.gt200bp','gt6.lt51bp','gt6.lt101bp','gt6.51to200bp','gt6.gt200bp',
+                  'um75.hs37.d5','um35.hs37.d5','hs37.d5.mask75_50','hs37.d5.mask35_50','structural','compositional',
+                  'hg19SelfChainSplit','refseqUnionCds','cpg.islands',
+                  'SRHomopolymer.3to5','SRHomopolymer.6to10','SRHomopolymer.gt10','SRDiTR.11to50','SRDiTR.51to200','SRDiTR.gt200',
+                  'SRTriTR.11to50','SRTriTR.51to200','SRTriTR.gt200','SRQuadTR.11to50','SRQuadTR.51to200','SRQuadTR.gt200')
+
 # Combine the names of all the columns to keep
 keepColumns <- c(variantInfo,annotations)
 
@@ -124,6 +132,9 @@ for (y in 1:length(VCFs)) {
   VCFs[[y]][,gt6.lt101bp := as.numeric(VCFs[[y]][,gt6_lt101bp] != "")]
   VCFs[[y]][,gt6.51to200bp := as.numeric(VCFs[[y]][,gt6_51to200bp] != "")]
   VCFs[[y]][,gt6.gt200bp := as.numeric(VCFs[[y]][,gt6_gt200bp] != "")]
+  
+  # Create normal region part of the chart
+  VCFs[[y]][,normRegion := as.numeric(VCFs[[y]][,gc30to55] == 1 & rowSums(VCFs[[y]][,chartColumns, with = FALSE]) == 1)]
   
   # **To add another BED file
   #    2. Add this line
