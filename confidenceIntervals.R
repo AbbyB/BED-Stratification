@@ -41,8 +41,23 @@ chartName <- gsub('.csv','',files)
 #    chartName <- c("(label 1)", "(label 2)", "(etc. for the total number of files)")
 
 # List of the VCF file names
-VCFNamesSorted <- sort(unique(charts[[1]][,VCF]))[1:4]
+VCFNamesSorted <- array(dim=c(length(files),4))
+for (z in 1:length(files)) {
+  VCFNamesSorted[z,] <- sort(unique(charts[[z]][,VCF]))
+}
 # 1. FN, 2. FP, 3. NA, 4. TP
+
+# **If you want to only process selected BED files use:
+# **Select which columns
+# bedFiles <- c('VCF','gc15','gc15to20','gc20to25','gc25to30','gc30to55','gc55to60','gc60to65','gc65to70','gc70to75','gc75to80','gc80to85','gc85',
+#               'compositional','hg19SelfChainSplit','cpg.islands',
+#               'SRHomopolymer.3to5','SRHomopolymer.6to10','SRDiTR.11to50','SRDiTR.51to200',
+#               'SRTriTR.11to50','SRTriTR.51to200','SRQuadTR.11to50','SRQuadTR.51to200',
+#               'lt7.lt51bp','lt7.51to200bp','lt7.gt200bp','gt6.lt51bp','gt6.51to200bp','gt6.gt200bp', 'normRegion')
+# 
+# for (z in 1:length(charts)) {
+#   charts[[z]] <- charts[[z]][,bedFiles,with=FALSE]
+# }
 
 # The number of columns
 chartEnd <- ncol(charts[[1]])
@@ -58,30 +73,26 @@ firstBED <- x
 # **Set firstBED to first BED file column if the error message "Please set the value for firstBED" appears:
 #    firstBED <- 
 
-# Select all the BED files except gc30to55
-BEDs <- names(charts[[1]])[firstBED:length(names(charts[[1]]))]
-BEDs <- BEDs[BEDs != "gc30to55"]
-# Loop through the charts and row sum the relevant columns
-lapply(1:length(charts),function(z){
-  charts[[z]][,totalBEDs := rowSums(charts[[z]][,BEDs,with = FALSE])]
-})
-
 # Compute
 # Create the first row of the binomial confidence interval
 #  creates a new row that is:
 #  Chart name, BED name, estimate point, lower bound, upper bound
 confInt <- lapply(1:length(charts),function(z){
   rbindlist(list(as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Negatives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[1],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[1] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
-                 as.data.table(cbind(paste(chartName[z],"False Negatives"),"No BED File",binconf(nrow(charts[[z]][VCF==VCFNamesSorted[1] & totalBEDs == 0,]),nrow(charts[[z]][(VCF==VCFNamesSorted[1] | VCF==VCFNamesSorted[4]) & totalBEDs == 0,])))),
                  as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Positives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[2],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[2] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
-                 as.data.table(cbind(paste(chartName[z],"False Positives"),"No BED File",binconf(nrow(charts[[z]][VCF==VCFNamesSorted[2] & totalBEDs == 0,]),nrow(charts[[z]][(VCF==VCFNamesSorted[2] | VCF==VCFNamesSorted[4]) & totalBEDs == 0,])))),
-                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"Not Assessed"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[3],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[3] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
-                 as.data.table(cbind(paste(chartName[z],"Not Assessed"),"No BED File",binconf(nrow(charts[[z]][VCF==VCFNamesSorted[3] & totalBEDs == 0,]),nrow(charts[[z]][(VCF==VCFNamesSorted[3] | VCF==VCFNamesSorted[4]) & totalBEDs == 0,]))))))
+                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"Not Assessed"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[3],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[3] | VCF==VCFNamesSorted[4],x,with=FALSE])))}))))))
 })
 confInt <- rbindlist(confInt)
-
 # Rename the first 2 columns
 setnames(confInt,c("VCF","BED.File","PointEst","Lower","Upper"))
+
+# Create a data frame of the total variants from each VCF
+totals <- ldply(1:length(charts), .fun=function(z){
+  rbind(nrow(charts[[z]][VCF==VCFNamesSorted[z,1],]),
+        nrow(charts[[z]][VCF==VCFNamesSorted[z,2],]),
+        nrow(charts[[z]][VCF==VCFNamesSorted[z,3],]),
+        nrow(charts[[z]][VCF==VCFNamesSorted[z,4],]))
+})
 
 # Save the chart of confidence intervals
 write.csv(file="Confidence_Intervals.csv", x=confInt)
@@ -159,9 +170,11 @@ VCFNames <- unique(confInt[,VCF])
 # List of the bed file names
 bedFiles <- confInt[VCF == VCFNames[1],BED.File]
 
-# Create a vector of the rate in a "typical" part of the genome
-#  typical being the gc content of 30 to 55
-lines <- confInt[BED.File == "No BED File",PointEst]
+# Create a vector of the average rate in the whole genome
+sequence <- c(1:(length(charts)*4))
+lines <- lapply(sequence[! sequence %in% seq(0,length(charts)*4,4)], function(z){
+  totals[z, ]/ sum(totals[z,],totals[ceil(z/4)*4,])
+})
 
 #GRAPHING WAY 1 -------------
 
@@ -179,7 +192,7 @@ graphs <- lapply(1:length(VCFNames),function(y){
     # Add error bars
     geom_errorbar(aes(ymax = Upper, ymin = Lower), position=position_dodge(width=0.9), width=0.25) + 
     # Scale the y axis
-    # ylim(0, 1) + 
+    ylim(0, 1) + 
     # Add a title
     ggtitle(paste(VCFNames[y],"Rate")) + 
     # Add horizontal line for typical genome regions
@@ -201,6 +214,7 @@ bedGroups[13:20] <- "Imperfect Repeats"
 bedGroups[21:26] <- "Unimask"
 bedGroups[27:29] <- "Miscellaneous"
 bedGroups[30:41] <- "Simple Repeats"
+bedGroups[42] <- "Ideal Region"
 # Create a vector for each group once in the order they appear along the x axis
 totalGroups <- unique(bedGroups)
 
@@ -217,7 +231,7 @@ graphs <- lapply(1:length(VCFNames),function(y){
     # Add error bars
     geom_errorbar(aes(ymax = Upper, ymin = Lower), position=position_dodge(width=0.9), width=0.25) + 
     # Scale the y axis
-    # ylim(0, 1) + 
+    ylim(0, 1) + 
     # Add a title
     ggtitle(paste(VCFNames[y],"Rate")) + 
     # Add horizontal line for typical genome regions
