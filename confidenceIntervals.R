@@ -14,11 +14,13 @@
 # Run the comment-ed 'install.packages' lines the first time this program is run only
 # When running this program with different BED or VCF files, take note of comments with '**'
 
-# install.packages("Hmisc")  # only run this the first time to install
-# install.packages("data.table")
+# install.packages("data.table")  # only run this the first time to install
+# install.packages("plyr")
+# install.packages("Hmisc")
 # install.packages("ggplot2")
-library(Hmisc)
 library(data.table)
+library(plyr)
+library(Hmisc)
 library(ggplot2)
 
 # Input
@@ -78,9 +80,9 @@ firstBED <- x
 #  creates a new row that is:
 #  Chart name, BED name, estimate point, lower bound, upper bound
 confInt <- lapply(1:length(charts),function(z){
-  rbindlist(list(as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Negatives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[1],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[1] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
-                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Positives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[2],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[2] | VCF==VCFNamesSorted[4],x,with=FALSE])))})))),
-                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"Not Assessed"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[3],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[3] | VCF==VCFNamesSorted[4],x,with=FALSE])))}))))))
+  rbindlist(list(as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Negatives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[z,1],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[z,1] | VCF==VCFNamesSorted[z,4],x,with=FALSE])))})))),
+                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"False Positives"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[z,2],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[z,2] | VCF==VCFNamesSorted[z,4],x,with=FALSE])))})))),
+                 as.data.table(t(as.data.table(lapply(firstBED:chartEnd, function(x){cbind(paste(chartName[z],"Not Assessed"),names(charts[[z]])[x],binconf(sum(charts[[z]][VCF==VCFNamesSorted[z,3],x,with=FALSE]),sum(charts[[z]][VCF==VCFNamesSorted[z,3] | VCF==VCFNamesSorted[z,4],x,with=FALSE])))}))))))
 })
 confInt <- rbindlist(confInt)
 # Rename the first 2 columns
