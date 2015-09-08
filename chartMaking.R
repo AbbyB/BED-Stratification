@@ -54,7 +54,7 @@ annotations <- c('gc_content_15','gc_content_15to20','gc_content_20to25','gc_con
                  # Simple repeats annotations
                  'SR_homopolymer_3to5','SR_homopolymer_6to10','SR_homopolymer_gt10','SR_diTR_11to50','SR_diTR_51to200','SR_diTR_gt200',
                  'SR_triTR_11to50','SR_triTR_51to200','SR_triTR_gt200','SR_quadTR_11to50','SR_quadTR_51to200','SR_quadTR_gt200',
-                 # Imperfect and perfect repeats annotations
+                 # Low complexity annotations
                  'lt7_lt51bp','lt7_lt101bp','lt7_51to200bp','lt7_gt200bp','gt6_lt51bp','gt6_lt101bp','gt6_51to200bp','gt6_gt200bp')
 # **To add another BED file
 #    1. Add the name of the annotation to the previous vector
@@ -123,7 +123,7 @@ for (y in 1:length(VCFs)) {
   VCFs[[y]][,SRQuadTR.51to200 := as.numeric(VCFs[[y]][,SR_quadTR_51to200] != "")]
   VCFs[[y]][,SRQuadTR.gt200 := as.numeric(VCFs[[y]][,SR_quadTR_gt200] != "")]
   
-  # Create imperfect & perfect repeats part of the chart
+  # Create low complexity part of the chart
   VCFs[[y]][,lt7.lt51bp := as.numeric(VCFs[[y]][,lt7_lt51bp] != "")]
   VCFs[[y]][,lt7.lt101bp := as.numeric(VCFs[[y]][,lt7_lt101bp] != "")]
   VCFs[[y]][,lt7.51to200bp := as.numeric(VCFs[[y]][,lt7_51to200bp] != "")]
