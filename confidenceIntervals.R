@@ -105,56 +105,6 @@ write.csv(file="Confidence_Intervals.csv", x=confInt)
 
 # Graphing
 
-# Run first - function to allow multiplot to work
-# Source: R cookbook
-#         http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/
-
-# Multiple plot function
-#
-# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
-# - cols:   Number of columns in layout
-# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
-#
-# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
-# then plot 1 will go in the upper left, 2 will go in the upper right, and
-# 3 will go all the way across the bottom.
-#
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  library(grid)
-  
-  # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
-  
-  numPlots = length(plots)
-  
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
-                     ncol = cols, nrow = ceiling(numPlots/cols))
-  }
-  
-  if (numPlots==1) {
-    print(plots[[1]])
-    
-  } else {
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      
-      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
-                                      layout.pos.col = matchidx$col))
-    }
-  }
-}
-
 # Set the cell type to numeric
 confInt[, PointEst := as.numeric(confInt[,PointEst])]
 confInt[, Lower := as.numeric(confInt[,Lower])]
@@ -162,10 +112,7 @@ confInt[, Upper := as.numeric(confInt[,Upper])]
 
 # Sets indefinite cells to 0
 #  the graph will show no bar or error bars
-confInt[is.nan(confInt[,PointEst]), PointEst := 0]
-# **If reading in the confidence intervals file,
-#    use the line below to remove blank cells:
-#     confInt[is.na(confInt[,PointEst]), PointEst := 0]
+confInt[is.nan(confInt[,PointEst]) | is.na(confInt[,PointEst]), PointEst := 0]
 
 # List of the VCF file names
 VCFNames <- unique(confInt[,VCF])
@@ -173,63 +120,41 @@ VCFNames <- unique(confInt[,VCF])
 bedFiles <- confInt[VCF == VCFNames[1],BED.File]
 
 # Create a vector of the average rate in the whole genome
-sequence <- c(1:(length(charts)*4))
-lines <- lapply(sequence[! sequence %in% seq(0,length(charts)*4,4)], function(z){
+VCFNum <- c(1:(length(charts)*4))
+lines <- lapply(VCFNum[! VCFNum %in% seq(0,length(charts)*4,4)], function(z){
   totals[z, ]/ sum(totals[z,],totals[ceil(z/4)*4,])
 })
 
-#GRAPHING WAY 1 -------------
-
-# Each bar is colored differently, no legend
-# Save each VCF graph to a variable
-graphs <- lapply(1:length(VCFNames),function(y){
-  # Creates simple bar graph for 1 VCF, assigns the data to x and y
-  ggplot(data=confInt[VCF == VCFNames[y],], aes(x=factor(bedFiles, levels=bedFiles), y=PointEst, fill=factor(bedFiles, levels=bedFiles))) + 
-    # Create a continous y axis
-    geom_bar(stat="identity") + 
-    # Remove legend
-    guides(fill=FALSE) + 
-    # Make the x axis horizontal
-    theme(axis.text.x  = element_text(angle=90, vjust=0.5, hjust=1)) + 
-    # Add error bars
-    geom_errorbar(aes(ymax = Upper, ymin = Lower), position=position_dodge(width=0.9), width=0.25) + 
-    # Scale the y axis
-    ylim(0, 1) + 
-    # Add a title
-    ggtitle(paste(VCFNames[y],"Rate")) + 
-    # Add horizontal line for typical genome regions
-    geom_hline(yintercept = lines[y], colour="#555555", linetype="dashed") + 
-    # Label the axes
-    labs(x = "BED File", y = "Rate")
-})
-
-#----------------------------
-
-#GRAPHING WAY 2 -------------
-
-# Each bar is grouped by the BED File type, legend present
+# Each bar is grouped by the BED File type, legend present with the BED file types
 # Create a vector that assigns each BED file to a group
 # **Change these values
 bedGroups <- c()
 bedGroups[1:12] <- "GC Content"
-bedGroups[13:20] <- "Imperfect Repeats"
-bedGroups[21:26] <- "Unimask"
-bedGroups[27:29] <- "Miscellaneous"
-bedGroups[30:41] <- "Simple Repeats"
+bedGroups[13:18] <- "Unimask"
+bedGroups[19:21] <- "Miscellaneous"
+bedGroups[22:33] <- "Simple Repeats"
+bedGroups[34:41] <- "Low Complexity"
 bedGroups[42] <- "Ideal Region"
-# Create a vector for each group once in the order they appear along the x axis
-totalGroups <- unique(bedGroups)
 
 # Save each VCF graph to a variable
 graphs <- lapply(1:length(VCFNames),function(y){
-  # Creates simple bar graph for 1 VCF, assigns the data to x and y
+  # Creates simple bar graph for 1 VCF, assigns the data to x, y, and fill
   ggplot(data=confInt[VCF == VCFNames[y],], aes(x=factor(bedFiles, levels=bedFiles), y=PointEst, fill=bedGroups)) + 
     # Create a continous y axis
     geom_bar(stat="identity") + 
     # Add legend for BED file groupings
-    scale_fill_discrete(name="BED File Groupings", breaks=totalGroups) + 
-    # Make the x axis horizontal
-    theme(axis.text.x  = element_text(angle=90, vjust=0.5, hjust=1)) + 
+    scale_fill_discrete(name="BED File Groupings", breaks=unique(bedGroups)) + 
+    # Set all text color to black
+    theme(text = element_text(colour = "black"), axis.text = element_text(colour = "black"),
+          # Make the x axis horizontal
+          axis.text.x  = element_text(angle=90, vjust=0.5, hjust=1, size=12),
+          # Adjust text size and face
+          axis.text.y  = element_text(size=12),
+          legend.text = element_text(size=12),
+          axis.title.x = element_text(size=15, face="bold"),
+          axis.title.y = element_text(size=15, face="bold"),
+          legend.title = element_text(size=15), 
+          plot.title = element_text(size=18, face="bold")) + 
     # Add error bars
     geom_errorbar(aes(ymax = Upper, ymin = Lower), position=position_dodge(width=0.9), width=0.25) + 
     # Scale the y axis
@@ -237,12 +162,10 @@ graphs <- lapply(1:length(VCFNames),function(y){
     # Add a title
     ggtitle(paste(VCFNames[y],"Rate")) + 
     # Add horizontal line for typical genome regions
-    geom_hline(yintercept = lines[y], colour="#555555", linetype="dashed") + 
+    geom_hline(yintercept = lines[[y]], colour="#555555", linetype="dashed") + 
     # Label the axes
     labs(x = "BED File", y = "Rate")
 })
-
-#----------------------------
 
 # Print all 6 graphs separately
 graphs[[1]]
@@ -252,5 +175,51 @@ graphs[[4]]
 graphs[[5]]
 graphs[[6]]
 
-# Plot all graphs on one page (click zoom to see)
-multiplot(plotlist = graphs, cols=round(sqrt(length(graphs))))
+#----------------------------
+
+# Show all graphs in one frame
+
+# Reformat the confidence interval data frame
+IS <- c(rep("Indels",nrow(confInt)/2),rep("SNPs",nrow(confInt)/2))
+# Create Indels or SNPs column
+confInt2 <- cbind(VCFp1 = IS, confInt)
+setnames(confInt2,"VCF","VCFp2")
+# Create false negatives, false positives, or not assessed column
+VCFp2Descriptor <- c("False Negatives","False Positives","Not Assessed","False Negatives","False Positives","Not Assessed")
+for (y in 1:length(VCFNames)) {
+  confInt2[VCFp2 == VCFNames[y],VCFp2 := VCFp2Descriptor[y]]
+}
+# Reformat the average rate data frame
+linesChart <- data.frame(VCFp1 = IS, VCFp2 = VCFp2Descriptor, V1 = as.data.frame(t(as.data.frame(lines))))
+
+# Assign x, y, and fill
+allGraph <- ggplot(confInt2, aes(x=BED.File, y=PointEst, fill=c(rep(bedGroups,6)))) + 
+  # Create a continous y axis
+  geom_bar(stat="identity") + 
+  # Keep the x-axis in the correct order
+  scale_x_discrete(limits=bedFiles) +
+  # Split into six graphs
+  facet_grid(VCFp1 ~ VCFp2) +
+  # Add legend for BED file groupings
+  scale_fill_discrete(name="BED File Groupings", breaks=unique(bedGroups)) + 
+  # Make the x axis horizontal
+  theme(axis.text.x  = element_text(angle=90, vjust=0.5, hjust=1, size=12, colour = "black"),
+        # Adjust text size, color, and face
+        axis.text.y  = element_text(size=12, colour = "black"),
+        legend.text = element_text(size=12, colour = "black"),
+        strip.text.x = element_text(size=15, face="bold"),
+        strip.text.y = element_text(size=15, face="bold"),
+        axis.title.x = element_text(size=13, face="bold"),
+        axis.title.y = element_text(size=13, face="bold"),
+        legend.title = element_text(size=13, colour = "black")) + 
+  # Add error bars
+  geom_errorbar(aes(ymax = Upper, ymin = Lower), position=position_dodge(width=0.9), width=0.25) + 
+  # Scale the y axis
+  ylim(0, 1) + 
+  # Add horizontal line for typical genome regions
+  geom_hline(data = linesChart, aes(yintercept = V1), colour="#555555", linetype="dashed") + 
+  # Label the axes
+  labs(x = "BED File", y = "Rate")
+
+# Plot all graphs in one frame
+allGraph
