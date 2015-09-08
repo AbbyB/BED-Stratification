@@ -49,15 +49,15 @@ lapply(1:length(charts),function(z){setkey(charts[[z]],VCF)})
 # Sum groups of columns by row
 # Save the column names to a variable
 SR <- names(charts[[1]])[grepl("SR", names(charts[[1]]))]
-IR <- c("lt7.lt51bp","lt7.51to200bp","lt7.gt200bp","gt6.lt51bp","gt6.51to200bp","gt6.gt200bp")
+LC <- c("lt7.lt51bp","lt7.51to200bp","lt7.gt200bp","gt6.lt51bp","gt6.51to200bp","gt6.gt200bp")
 # Loop through the charts and row sum the relevant columns
 lapply(1:length(charts),function(z){
-  # Imperfect Repeats
-  charts[[z]][,IR := rowSums(charts[[z]][,IR,with = FALSE])]
+  # Low Complexity
+  charts[[z]][,LC := rowSums(charts[[z]][,LC,with = FALSE])]
   # Simple Repeats
   charts[[z]][,SR := rowSums(charts[[z]][,SR,with = FALSE])]
-  # Imperfect Repeats and Simple Repeats
-  charts[[z]][,IRSR := IR + SR]
+  # Low Complexity and Simple Repeats
+  charts[[z]][,LCSR := LC+ SR]
 })
 
 # Initialize the variables
@@ -69,7 +69,7 @@ counts <- list()
 # Create a data table with row 1-4 FN, FP, NA, and TP respectively
 for (z in 1:length(charts)){
   #GC content overlap with both sets of repeats
-  counts[[z]] <- cbind(charts[[z]][IRSR > 0,list(sum(gc15),
+  counts[[z]] <- cbind(charts[[z]][LCSR > 0,list(sum(gc15),
                                                  sum(gc15to20),
                                                  sum(gc20to25),
                                                  sum(gc25to30),
@@ -82,7 +82,7 @@ for (z in 1:length(charts)){
                                                  sum(gc80to85),
                                                  sum(gc85)),by = VCF][,VCF := NULL],
                        
-                       #Imperfect repeats overlap with simple repeats
+                       #Low complexity overlap with simple repeats
                        charts[[z]][SR > 0,list(sum(lt7.lt51bp),
                                                sum(lt7.51to200bp),
                                                sum(lt7.gt200bp),
@@ -104,7 +104,7 @@ for (z in 1:length(charts)){
                                                                sum(gc80to85),
                                                                sum(gc85)),by = VCF][,VCF := NULL],2),
                        
-                       #Compositional overlap with imperfect repeats
+                       #Compositional overlap with low complexity
                        charts[[z]][compositional == 1,list(sum(lt7.lt51bp),
                                                            sum(lt7.51to200bp),
                                                            sum(lt7.gt200bp),
@@ -127,7 +127,7 @@ for (z in 1:length(charts)){
                                                            sum(SRQuadTR.gt200)),by = VCF][,VCF := NULL],
                        
                        #Compositional overlap with both sets of repeats
-                       charts[[z]][IRSR > 0,sum(compositional),by = VCF][,VCF := NULL],
+                       charts[[z]][LCSR > 0,sum(compositional),by = VCF][,VCF := NULL],
                        
                        #GC content overlap with CPG Islands
                        charts[[z]][cpg.islands == 1,list(sum(gc15),
@@ -142,15 +142,15 @@ for (z in 1:length(charts)){
                                                          sum(gc75to80),
                                                          sum(gc80to85),
                                                          sum(gc85)),by = VCF][,VCF := NULL])
-
+  
   # Names of overlaps
-  names[[z]] <- c(paste(chartName[z],"IRSRin15"),paste(chartName[z],"IRSRin15to20"),paste(chartName[z],"IRSRin20to25"),paste(chartName[z],"IRSRin25to30"),paste(chartName[z],"IRSRin30to55"),paste(chartName[z],"IRSRin55to60"),paste(chartName[z],"IRSRin60to65"),paste(chartName[z],"IRSRin65to70"),paste(chartName[z],"IRSRin70to75"),paste(chartName[z],"IRSRin75to80"),paste(chartName[z],"IRSRin80to85"),paste(chartName[z],"IRSRin85"),
+  names[[z]] <- c(paste(chartName[z],"LCSRin15"),paste(chartName[z],"LCSRin15to20"),paste(chartName[z],"LCSRin20to25"),paste(chartName[z],"LCSRin25to30"),paste(chartName[z],"LCSRin30to55"),paste(chartName[z],"LCSRin55to60"),paste(chartName[z],"LCSRin60to65"),paste(chartName[z],"LCSRin65to70"),paste(chartName[z],"LCSRin70to75"),paste(chartName[z],"LCSRin75to80"),paste(chartName[z],"LCSRin80to85"),paste(chartName[z],"LCSRin85"),
                   paste(chartName[z],"SRinlt7.lt51bp"),paste(chartName[z],"SRinlt7.51to200bp"),paste(chartName[z],"SRinlt7.gt200bp"),paste(chartName[z],"SRingt6.lt51bp"),paste(chartName[z],"SRingt6.51to200bp"),paste(chartName[z],"SRingt6.gt200bp"),
                   paste(chartName[z],"compin15"),paste(chartName[z],"compin15to20"),paste(chartName[z],"compin20to25"),paste(chartName[z],"compin25to30"),paste(chartName[z],"compin30to55"),paste(chartName[z],"compin55to60"),paste(chartName[z],"compin60to65"),paste(chartName[z],"compin65to70"),paste(chartName[z],"compin70to75"),paste(chartName[z],"compin75to80"),paste(chartName[z],"compin80to85"),paste(chartName[z],"compin85"),
                   paste(chartName[z],"15incomp"),paste(chartName[z],"15to20incomp"),paste(chartName[z],"20to25incomp"),paste(chartName[z],"25to30incomp"),paste(chartName[z],"30to55incomp"),paste(chartName[z],"55to60incomp"),paste(chartName[z],"60to65incomp"),paste(chartName[z],"65to70incomp"),paste(chartName[z],"70to75incomp"),paste(chartName[z],"75to80incomp"),paste(chartName[z],"80to85incomp"),paste(chartName[z],"85incomp"),
                   paste(chartName[z],"compinlt7.lt51bp"),paste(chartName[z],"compinlt7.51to200bp"),paste(chartName[z],"compinlt7.gt200bp"),paste(chartName[z],"compingt6.lt51bp"),paste(chartName[z],"compingt6.51to200bp"),paste(chartName[z],"compingt6.gt200bp"),
                   paste(chartName[z],"compinSRH3to5"),paste(chartName[z],"compinSRH6to10"),paste(chartName[z],"compinSRHgt10"),paste(chartName[z],"compinSRD11to50"),paste(chartName[z],"compinSRD51to200"),paste(chartName[z],"compinSRDgt200"),paste(chartName[z],"compinSRT11to50"),paste(chartName[z],"compinSRT51to200"),paste(chartName[z],"compinSRTgt200"),paste(chartName[z],"compinSRQ11to50"),paste(chartName[z],"compinSRQ51to200"),paste(chartName[z],"compinSRQgt200"),
-                  paste(chartName[z],"IRSRincomp"),
+                  paste(chartName[z],"LCSRincomp"),
                   paste(chartName[z],"islandsin15"),paste(chartName[z],"islandsin15to20"),paste(chartName[z],"islandsin20to25"),paste(chartName[z],"islandsin25to30"),paste(chartName[z],"islandsin30to55"),paste(chartName[z],"islandsin55to60"),paste(chartName[z],"islandsin60to65"),paste(chartName[z],"islandsin65to70"),paste(chartName[z],"islandsin70to75"),paste(chartName[z],"islandsin75to80"),paste(chartName[z],"islandsin80to85"),paste(chartName[z],"islandsin85"))
   
   # Total bases that potentially could have overlapped
@@ -187,7 +187,7 @@ for (z in 1:length(charts)){
   compbases <- charts[[z]][,sum(compositional),by = VCF][,VCF := NULL]
   # Order the totals to match the counts order
   bases[[z]] <- cbind(gcbases,irbases,gcbases,rep(compbases,12),irbases,srbases,compbases,gcbases)
-
+  
   # Make the data frame to display results
   # Add the names and counts for TP, FP, FN, and NA
   overlap[[z]] <- cbind(Name = names[[z]],as.data.table(cbind(overlapTP = as.integer(counts[[z]][4,]), overlapFP = as.integer(counts[[z]][2,]), overlapFN = as.integer(counts[[z]][1,]), overlapNA = as.integer(counts[[z]][3,])))[, lapply(.SD, as.numeric)])
